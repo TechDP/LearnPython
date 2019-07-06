@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 class SearchEngineBase(object):
     def __init__(self):
         pass
@@ -131,6 +134,40 @@ class BOWInvertedIndexEngine(SearchEngineBase):
         # 返回单词的 set
         return set(word_list)
 
+import pylru
+
+class LRUCache(object):
+    def __init__(self, size=32):
+        self.cache = pylru.lrucache(size)
+    
+    def has(self, key):
+        return key in self.cache
+    
+    def get(self, key):
+        return self.cache[key]
+    
+    def set(self, key, value):
+        self.cache[key] = value
+
+class BOWInvertedIndexEngineWithCache(BOWInvertedIndexEngine, LRUCache):
+    def __init__(self):
+        # 直接初始化第一个父类。使用这种方法时，要求继承的最顶层父类必须要继承object。
+        super(BOWInvertedIndexEngineWithCache, self).__init__()
+        # 对于多重继承，如果有多个构造函数需要调用，必须使用传统方法。
+        LRUCache.__init__(self)
+    
+    def search(self, query):
+        
+        if self.has(query):
+            print('cache hit!')
+            return self.get(query)
+        
+        # 强行调用被覆盖的父类(BOWInvertedIndexEngine)的函数 search()函数
+        result = super(BOWInvertedIndexEngineWithCache, self).search(query)
+        self.set(query, result)
+        
+        return result
+
 
 def main(search_engine):
     for file_path in ['1.txt', '2.txt', '3.txt', '4.txt', '5.txt']:
@@ -150,5 +187,8 @@ def main(search_engine):
 # search_engine = BOWEngine()
 # main(search_engine)
 
-search_engine = BOWInvertedIndexEngine()
+# search_engine = BOWInvertedIndexEngine()
+# main(search_engine)
+
+search_engine = BOWInvertedIndexEngineWithCache()
 main(search_engine)
